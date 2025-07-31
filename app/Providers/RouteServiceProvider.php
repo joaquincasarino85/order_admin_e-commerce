@@ -21,13 +21,17 @@ class RouteServiceProvider extends BaseRouteServiceProvider
      */
     public function boot(): void
     {
+        \Log::info('RouteServiceProvider boot method called');
+        
         $this->routes(function () {
+            \Log::info('Loading web routes');
+            Route::middleware('web')
+                ->group(base_path('routes/web.php'));
+                
+            \Log::info('Loading API routes');
             Route::middleware('api')
                 ->prefix('api')
                 ->group(base_path('routes/api.php'));
-
-            Route::middleware('web')
-                ->group(base_path('routes/web.php'));
         });
     }
 }
