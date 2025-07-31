@@ -14,6 +14,9 @@ Este es mi proyecto de administración de pedidos para e-commerce desarrollado e
 4. **Observers**: Usé `OrderObserver` para hooks automáticos
 5. **Jobs**: Agregué `SendOrderNotification` job para notificaciones asíncronas
 6. **Listeners**: Creé `SendOrderNotificationListener` para manejar eventos
+7. **OpenAPI/Swagger**: Documentación automática de la API con anotaciones
+8. **Caché con Redis**: Implementé caché en el Service Layer para optimizar consultas
+9. **Request Classes**: Validación de datos con `StoreOrderRequest` y reglas separadas
 
 ## 🚀 Cómo usar la API
 
@@ -42,6 +45,25 @@ curl -X GET http://localhost:8000/api/orders/1 \
   -H "Accept: application/json"
 ```
 
+## 📚 Documentación de la API
+
+### Swagger/OpenAPI
+- **URL de documentación:** `http://localhost:8000/api/documentation`
+- **JSON de la API:** `http://localhost:8000/docs`
+
+La documentación se genera automáticamente desde las anotaciones en el controlador:
+```php
+/**
+ * @OA\Post(
+ *     path="/api/orders",
+ *     summary="Crear una nueva orden",
+ *     tags={"Orders"},
+ *     @OA\RequestBody(...)
+ *     @OA\Response(...)
+ * )
+ */
+```
+
 ## 🛠️ Instalación
 
 1. **Clonar y instalar dependencias:**
@@ -59,7 +81,12 @@ php artisan migrate
 php artisan test
 ```
 
-4. **Iniciar servidor:**
+4. **Generar documentación Swagger:**
+```bash
+php artisan l5-swagger:generate
+```
+
+5. **Iniciar servidor:**
 ```bash
 php artisan serve
 ```
@@ -69,12 +96,15 @@ php artisan serve
 ```
 app/
 ├── Events/OrderCreated.php           # Evento cuando se crea una orden
-├── Http/Controllers/OrderController.php
+├── Http/
+│   ├── Controllers/OrderController.php
+│   └── Requests/StoreOrderRequest.php # Validación de datos
 ├── Jobs/SendOrderNotification.php    # Job para notificaciones
 ├── Listeners/SendOrderNotificationListener.php
 ├── Models/Order.php
 ├── Observers/OrderObserver.php       # Observer para hooks automáticos
-├── Services/OrderService.php         # Service layer inyectado
+├── Rules/OrderValidationRules.php    # Reglas de validación separadas
+├── Services/OrderService.php         # Service layer con caché
 └── Providers/
     ├── AppServiceProvider.php        # Registro de servicios
     └── EventServiceProvider.php      # Registro de eventos
@@ -92,6 +122,49 @@ Todos los tests pasan ✅:
 
 **CSRF Token Issue**: Las rutas API tenían problemas con CSRF. Solucioné creando una ruta alternativa `/api/create-order` que funciona perfectamente.
 
+## ⚡ Optimizaciones Implementadas
+
+### Caché con Redis
+Implementé caché en el Service Layer para optimizar consultas:
+
+```php
+// OrderService.php
+public function getOrder(int $id): ?Order
+{
+    return Cache::remember("order.{$id}", 3600, function () use ($id) {
+        return Order::find($id);
+    });
+}
+```
+
+**Beneficios:**
+- ✅ Primera consulta → DB
+- ✅ Consultas siguientes → Caché (más rápido)
+- ✅ Se borra automáticamente después de 1 hora
+- ✅ Reduce consultas redundantes a la base de datos
+
+### Validación con Request Classes
+Creé un sistema de validación organizado:
+
+```php
+// OrderValidationRules.php - Reglas separadas
+public static function store(): array
+{
+    return [
+        'customer_name' => 'required|string|max:255',
+        'customer_email' => 'required|email|max:255',
+        'total' => 'required|numeric|min:0',
+        'status' => 'required|string|in:pending,processing,completed,cancelled',
+    ];
+}
+```
+
+**Ventajas:**
+- ✅ Reglas reutilizables
+- ✅ Mensajes personalizados en español
+- ✅ Separación de responsabilidades
+- ✅ Fácil mantenimiento
+
 ## 🎯 Características Implementadas
 
 - ✅ CRUD de órdenes
@@ -101,6 +174,9 @@ Todos los tests pasan ✅:
 - ✅ Jobs para tareas asíncronas
 - ✅ Tests completos
 - ✅ API RESTful
+- ✅ **OpenAPI/Swagger** - Documentación automática
+- ✅ **Caché con Redis** - Optimización de consultas
+- ✅ **Request Classes** - Validación organizada
 - ✅ Docker configurado
 
 ## 🐳 Docker
@@ -122,5 +198,8 @@ docker-compose up -d
 - Arquitectura limpia con separación de responsabilidades
 - Eventos para desacoplar lógica de negocio
 - Service layer para lógica de dominio
+- **Swagger para documentación automática**
+- **Caché para optimización de performance**
+- **Request classes para validación robusta**
 
 ¡El proyecto está listo para producción! 🚀
