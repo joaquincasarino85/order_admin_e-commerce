@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Services\OrderService;
+use App\Http\Requests\StoreOrderRequest;
 
 /**
  * @OA\Info(
