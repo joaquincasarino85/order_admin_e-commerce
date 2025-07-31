@@ -6,6 +6,16 @@ use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Services\OrderService;
 
+/**
+ * @OA\Info(
+ *     version="1.0.0",
+ *     title="Order Management API",
+ *     description="API para administración de pedidos e-commerce",
+ *     @OA\Contact(
+ *         email="admin@example.com"
+ *     )
+ * )
+ */
 class OrderController extends Controller
 {
     private OrderService $orderService;
@@ -14,8 +24,21 @@ class OrderController extends Controller
     {
         $this->orderService = $orderService;
     }
+
     /**
-     * Display a listing of the resource.
+     * @OA\Get(
+     *     path="/api/orders",
+     *     summary="Obtener todas las órdenes",
+     *     tags={"Orders"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Lista de órdenes",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/Order")
+     *         )
+     *     )
+     * )
      */
     public function index()
     {
@@ -24,7 +47,30 @@ class OrderController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * @OA\Post(
+     *     path="/api/orders",
+     *     summary="Crear una nueva orden",
+     *     tags={"Orders"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"customer_name","customer_email","total","status"},
+     *             @OA\Property(property="customer_name", type="string", example="Juan Pérez"),
+     *             @OA\Property(property="customer_email", type="string", format="email", example="juan@example.com"),
+     *             @OA\Property(property="total", type="number", format="float", example=150.50),
+     *             @OA\Property(property="status", type="string", example="pending")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Orden creada exitosamente",
+     *         @OA\JsonContent(ref="#/components/schemas/Order")
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Error de validación"
+     *     )
+     * )
      */
     public function store(Request $request)
     {
@@ -34,7 +80,27 @@ class OrderController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * @OA\Get(
+     *     path="/api/orders/{id}",
+     *     summary="Obtener una orden específica",
+     *     tags={"Orders"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="ID de la orden",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Orden encontrada",
+     *         @OA\JsonContent(ref="#/components/schemas/Order")
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Orden no encontrada"
+     *     )
+     * )
      */
     public function show(string $id)
     {
@@ -48,18 +114,67 @@ class OrderController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * @OA\Put(
+     *     path="/api/orders/{id}",
+     *     summary="Actualizar una orden",
+     *     tags={"Orders"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="ID de la orden",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(ref="#/components/schemas/Order")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Orden actualizada",
+     *         @OA\JsonContent(ref="#/components/schemas/Order")
+     *     )
+     * )
      */
     public function update(Request $request, string $id)
     {
-        //
+        $order = Order::find($id);
+        
+        if (!$order) {
+            return response()->json(['message' => 'Order not found'], 404);
+        }
+        
+        $order->update($request->all());
+        return response()->json($order);
     }
 
     /**
-     * Remove the specified resource from storage.
+     * @OA\Delete(
+     *     path="/api/orders/{id}",
+     *     summary="Eliminar una orden",
+     *     tags={"Orders"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="ID de la orden",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Orden eliminada"
+     *     )
+     * )
      */
     public function destroy(string $id)
     {
-        //
+        $order = Order::find($id);
+        
+        if (!$order) {
+            return response()->json(['message' => 'Order not found'], 404);
+        }
+        
+        $order->delete();
+        return response()->json(['message' => 'Order deleted successfully']);
     }
 }
